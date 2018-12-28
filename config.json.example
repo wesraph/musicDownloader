@@ -1,0 +1,15 @@
+{
+    "libraryFolder" : "/path/to/my/library",
+    "playlistToSync" : [
+        {
+            "url" : "https://www.youtube.com/playlist?list=PLbhQKJTW_r3hOcDksNu4d78zP7T8AK69z",
+            "folder" : "Techno"
+        },
+        {
+            "url" : "https://soundcloud.com/raphael-westphal/sets/maison",
+            "folder" : "House"
+        }
+    ]
+}
+
+
