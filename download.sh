@@ -1,10 +1,14 @@
 #!/bin/sh
 set -e
 
-CONFIG_FILE="./config.json"
-LIBRARY_FOLDER="./test/" 
-UPDATE_YOUTUBEDL=0
+UPDATE_YOUTUBEDL=1
 ACTUAL_PATH="$(pwd)"
+
+export CONFIG_FILE="./config.json"
+export LIBRARY_FOLDER="./test/" 
+export ACTUAL_PATH
+export ALLOW_OVERWRITE=1
+
 
 if [ -z "$(parallel --version)" ]; then
     echo "Please install gnu parallel"
@@ -21,10 +25,12 @@ if [ -z "$(realpath --help)" ]; then
     exit 1
 fi
 
-LIBRARY_FOLDER=$(jq .libraryFolder config.json)
+LIBRARY_FOLDER=$(jq -r .libraryFolder config.json)
 if [ -z "$LIBRARY_FOLDER" ]; then
     echo "libraryFolder is undefined in config.json"
 fi
+
+LIBRARY_FOLDER=$(realpath "$LIBRARY_FOLDER")
 
 if [ ! -d "$LIBRARY_FOLDER" ]; then
     echo "Library folder does not exist"
@@ -41,7 +47,6 @@ rm -rf tmp || true
 mkdir tmp || true
 
 #Convert to absolute path to keep consistency
-LIBRARY_FOLDER=$(realpath "$LIBRARY_FOLDER")
 
 i=0
 url=$(jq -r ".playlistToSync[$i].url" "$CONFIG_FILE") 
@@ -77,12 +82,8 @@ while [ "$url" != "null" ]; do
 
         type=$(echo "$tracklist" | jq -r ".entries[$u].ie_key")
 
-        # Add
-        {
-            echo "LIBRARY_FOLDER=\"$LIBRARY_FOLDER\""
-            echo "ACTUAL_PATH=\"$ACTUAL_PATH\""
-            echo "outputFolder=\"$outputFolder\""
-        } >> "tmp/$uuid/worker.sh"
+        #Add the outputFolder to the configuration of the worker
+        echo "outputFolder=\"$outputFolder\"" >> "tmp/$uuid/worker.sh"
 
 
         # Add the title
@@ -90,16 +91,17 @@ while [ "$url" != "null" ]; do
             echo "title=\$(\"$ACTUAL_PATH/youtube-dl\" -e \"$soundUrl\")" >> "tmp/$uuid/worker.sh" 
             
             echo "Processing $soundUrl"
+
         elif [ "$type" = "Youtube" ]; then
             title=$(echo "$tracklist" | jq -r ".entries[$u].title")
             echo "title=\"$title\"" >> "tmp/$uuid/worker.sh"
 
             echo "Processing $title"
+
         else
             echo "$type is not supported, skipping"
             continue
         fi
-
 
         #Add the correct soundUrl
         if [ "$type" = "Youtube" ]; then

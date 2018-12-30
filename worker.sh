@@ -7,7 +7,7 @@ while [ $count -lt $MAX_COUNT ];do
     #Escape title
     title="$(echo "$title" | sed -E "s/\"|'|\\|//g")"
 
-    if [ -f "$LIBRARY_FOLDER/$outputFolder/$title.mp3" ]; then
+    if [ -f "$LIBRARY_FOLDER/$outputFolder/$title.mp3" -a "$ALLOW_OVERWRITE" = "0" ]; then
         echo "Skipping $title"
         exit 0
     fi
@@ -19,6 +19,7 @@ while [ $count -lt $MAX_COUNT ];do
         -f 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best' \
         -x --audio-format mp3 --audio-quality 0 \
         --add-metadata \
+        --metadata-from-title  "%(artist)s  -  %(title)s" \
         --embed-thumbnail --add-metadata -c  -i "$URL"
 
     if [ $? != 0 ]; then
