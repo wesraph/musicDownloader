@@ -2,13 +2,14 @@
 set -e
 
 UPDATE_YOUTUBEDL=1
-ACTUAL_PATH="$(pwd)"
-
 export CONFIG_FILE="./config.json"
 export LIBRARY_FOLDER="./test/" 
-export ACTUAL_PATH
-export ALLOW_OVERWRITE=1
+MAX_CONCURRENT_DOWNLOAD=3
 
+ACTUAL_PATH="$(pwd)"
+export ACTUAL_PATH
+
+export ALLOW_OVERWRITE=1
 
 if [ -z "$(parallel --version)" ]; then
     echo "Please install gnu parallel"
@@ -67,7 +68,7 @@ while [ "$url" != "null" ]; do
     tracklist=$(./youtube-dl "$url" --flat-playlist -J)
     if [ -z "$tracklist" ]; then
         echo "Cannot download tracklist $tracklist, please check the url"
-        exit 1
+        continue
     fi
 
     u=0
@@ -116,7 +117,6 @@ while [ "$url" != "null" ]; do
         #TODO: Add username/password for youtube/souncloud
         #--username \"$Playlist::config->{'username'}\" \
         #--password \"$Playlist::config->{'password'}\"  \
-        #-i \"$song->{'url'}\"\n";
 
         # Add the rest of the worker
         cat worker.sh >> "tmp/$uuid/worker.sh"
@@ -129,5 +129,10 @@ while [ "$url" != "null" ]; do
     url=$(jq -r ".playlistToSync[$i].url" "$CONFIG_FILE") 
 done
 
-echo "Launching downloads"
-find tmp -type f -iname "worker.sh" | parallel sh
+if [ "$MAX_CONCURRENT_DOWNLOAD" -gt "$(nproc)" ]; then
+    MAX_CONCURRENT_DOWNLOAD=$(nproc)
+fi
+
+echo "Launching downloads using $MAX_CONCURRENT_DOWNLOAD max concurrent downloads"
+    
+find tmp -type f -iname "worker.sh" | parallel -j "$MAX_CONCURRENT_DOWNLOAD" sh
