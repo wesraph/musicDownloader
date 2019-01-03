@@ -1,9 +1,9 @@
 #!/bin/sh
 set -e
 
-UPDATE_YOUTUBEDL=1
+UPDATE_YOUTUBEDL=${UPDATE_YOUTUBEDL:-1}
 export CONFIG_FILE="./config.json"
-export LIBRARY_FOLDER="./test/" 
+export LIBRARY_FOLDER="./test/"
 MAX_CONCURRENT_DOWNLOAD=3
 
 ACTUAL_PATH="$(pwd)"
@@ -11,32 +11,26 @@ export ACTUAL_PATH
 
 export ALLOW_OVERWRITE=1
 
-if [ -z "$(parallel --version)" ]; then
-    echo "Please install gnu parallel"
-    exit 1
-fi
+_required_tool() {
+	if ! type "$1" >/dev/null 2>/dev/null; then
+		echo "Please install $1"
+		exit 1
+	fi
+}
+_required_tool parallel
+_required_tool ffmpeg
+_required_tool nproc
 
-if [ -z "$(ffmpeg -version)" ]; then
-    echo "Please install ffmpeg"
-    exit 1
-fi
-
-if [ -z "$(realpath --help)" ]; then
-    echo "Please install realpath"
-    exit 1
-fi
+_print_err_and_exit() {
+    echo "$1"
+	exit 1
+}
 
 LIBRARY_FOLDER=$(jq -r .libraryFolder config.json)
-if [ -z "$LIBRARY_FOLDER" ]; then
-    echo "libraryFolder is undefined in config.json"
-fi
+[ "$LIBRARY_FOLDER" ] || _print_err_and_exit "libraryFolder is undefined in config.json"
 
-LIBRARY_FOLDER=$(realpath "$LIBRARY_FOLDER")
-
-if [ ! -d "$LIBRARY_FOLDER" ]; then
-    echo "Library folder does not exist"
-    exit 1
-fi
+LIBRARY_FOLDER=$(readlink -f "$LIBRARY_FOLDER")
+[ -d "$LIBRARY_FOLDER" ] || _print_err_and_exit "Library folder does not exist"
 
 if [ "$UPDATE_YOUTUBEDL" = 1 ]; then
     echo "Updating youtube-dl"
@@ -44,16 +38,20 @@ if [ "$UPDATE_YOUTUBEDL" = 1 ]; then
     chmod +x ./youtube-dl
 fi
 
+# TODO: check that the binary exists
+
 rm -rf tmp || true
 mkdir tmp || true
+
+# TODO: tmp -> $(mktemp) ?
 
 #Convert to absolute path to keep consistency
 
 i=0
-url=$(jq -r ".playlistToSync[$i].url" "$CONFIG_FILE") 
+url=$(jq -r ".playlistToSync[$i].url" "$CONFIG_FILE")
 while [ "$url" != "null" ]; do
     echo "Downloading tracklist for $url"
-    outputFolder=$(jq -r ".playlistToSync[$i].folder" "$CONFIG_FILE") 
+    outputFolder=$(jq -r ".playlistToSync[$i].folder" "$CONFIG_FILE")
 
     if [ "$outputFolder" = "null" ]; then
         echo "Output folder for $url is undefined"
@@ -62,7 +60,7 @@ while [ "$url" != "null" ]; do
 
     if [ ! -d "$LIBRARY_FOLDER/$outputFolder" ]; then
         echo "Creating $outputFolder"
-        mkdir  "$LIBRARY_FOLDER/$outputFolder"
+        mkdir -p "$LIBRARY_FOLDER/$outputFolder"
     fi
 
     tracklist=$(./youtube-dl "$url" --flat-playlist -J)
@@ -89,8 +87,8 @@ while [ "$url" != "null" ]; do
 
         # Add the title
         if [ "$type" = "Soundcloud" ]; then
-            echo "title=\$(\"$ACTUAL_PATH/youtube-dl\" -e \"$soundUrl\")" >> "tmp/$uuid/worker.sh" 
-            
+            echo "title=\$(\"$ACTUAL_PATH/youtube-dl\" -e \"$soundUrl\")" >> "tmp/$uuid/worker.sh"
+
             echo "Processing $soundUrl"
 
         elif [ "$type" = "Youtube" ]; then
@@ -126,7 +124,7 @@ while [ "$url" != "null" ]; do
 
     #Next turn
     i=$((i + 1))
-    url=$(jq -r ".playlistToSync[$i].url" "$CONFIG_FILE") 
+    url=$(jq -r ".playlistToSync[$i].url" "$CONFIG_FILE")
 done
 
 if [ "$MAX_CONCURRENT_DOWNLOAD" -gt "$(nproc)" ]; then
@@ -134,5 +132,5 @@ if [ "$MAX_CONCURRENT_DOWNLOAD" -gt "$(nproc)" ]; then
 fi
 
 echo "Launching downloads using $MAX_CONCURRENT_DOWNLOAD max concurrent downloads"
-    
+
 find tmp -type f -iname "worker.sh" | parallel -j "$MAX_CONCURRENT_DOWNLOAD" sh
