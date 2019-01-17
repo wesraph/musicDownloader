@@ -6,7 +6,6 @@ export CONFIG_FILE="./config.json"
 export LIBRARY_FOLDER="./test/"
 export ALLOW_OVERWRITE=0
 export TMP_FOLDER="/tmp"
-MAX_CONCURRENT_DOWNLOAD=3
 
 ACTUAL_PATH="$(pwd)"
 export ACTUAL_PATH
@@ -104,11 +103,6 @@ while [ "$url" != "null" ]; do
     url=$(jq -r ".playlistToSync[$i].url" "$CONFIG_FILE")
 done
 
-if [ "$MAX_CONCURRENT_DOWNLOAD" -gt "$(nproc)" ]; then
-    MAX_CONCURRENT_DOWNLOAD=$(nproc)
-fi
-
-echo "Launching downloads using $MAX_CONCURRENT_DOWNLOAD max concurrent downloads"
 parallel --link -a "$todoSoundUrl" -a "$todoOutputFolder" ./worker.sh "{1}" "{2}"
 
 rm -rf "$TMP_FOLDER"
