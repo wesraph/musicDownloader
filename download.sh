@@ -1,8 +1,7 @@
 #!/bin/sh
 set -e
 
-#UPDATE_YOUTUBEDL=${UPDATE_YOUTUBEDL:-1}
-UPDATE_YOUTUBEDL=0
+UPDATE_YOUTUBEDL=${UPDATE_YOUTUBEDL:-1}
 export CONFIG_FILE="./config.json"
 export LIBRARY_FOLDER="./test/"
 export ALLOW_OVERWRITE=0
@@ -41,7 +40,8 @@ if [ "$UPDATE_YOUTUBEDL" = 1 ] || [ ! -f "youtube-dl" ]; then
 fi
 
 TMP_FOLDER=$(mktemp -d)
-mkdir -p  $TMP_FOLDER
+
+touch sound.downloaded sound.failed
 
 todoSoundUrl=$(mktemp)
 todoOutputFolder=$(mktemp)
@@ -110,7 +110,6 @@ fi
 
 echo "Launching downloads using $MAX_CONCURRENT_DOWNLOAD max concurrent downloads"
 parallel --link -a "$todoSoundUrl" -a "$todoOutputFolder" ./worker.sh "{1}" "{2}"
-#find tmp -type f -iname "worker.sh" | parallel -j "$MAX_CONCURRENT_DOWNLOAD" sh
 
 rm -rf "$TMP_FOLDER"
 rm -rf "$todoOutputFolder"

@@ -8,6 +8,16 @@ set -e
 soundUrl="$1"
 outputFolder="$2"
 
+if grep sound.downloaded -e "$soundUrl" > /dev/null ; then
+    echo "Already downloaded: $soundUrl"
+    exit 0
+fi
+
+if grep sound.failed -e "$soundUrl" > /dev/null ; then
+    echo "Already failed: $soundUrl"
+    exit 0
+fi
+
 uuid=$(base32 /dev/urandom | head -c 15)
 mkdir -p "$TMP_FOLDER/$uuid"
 cd "$TMP_FOLDER/$uuid"  || exit
@@ -15,11 +25,12 @@ cd "$TMP_FOLDER/$uuid"  || exit
 count=0
 MAX_COUNT=3
 
+
 #TODO: Get the title 
 title="$("$ACTUAL_PATH/youtube-dl" -e "$soundUrl" | sed "s/\"|'|\\|\///g")"
 
 if [ -f "$LIBRARY_FOLDER/$outputFolder/$title.mp3" ] && [ "$ALLOW_OVERWRITE" = "0" ]; then
-    echo "Skipping $title"
+    echo "Already in library: $title"
     exit 0
 fi
 
@@ -44,12 +55,13 @@ done
 
 if [ "$count" = "$MAX_COUNT" ]; then
     echo "Failed to download $title"
-    echo "$soundUrl" > "$ACTUAL_PATH/failed_downloads.log"
+    echo "$soundUrl" >> "$ACTUAL_PATH/sound.failed"
     exit 1
 fi
+
+echo "$soundUrl" >> "$ACTUAL_PATH/sound.downloaded"
 
 #TODO: Change this
 toMove=$(find "$TMP_FOLDER/$uuid/" -iname "*.mp3")
 echo "Moving $title"
 mv "$toMove" "$LIBRARY_FOLDER/$outputFolder/$title.mp3"
-
