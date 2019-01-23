@@ -31,6 +31,7 @@ title="$("$ACTUAL_PATH/youtube-dl" -e "$soundUrl" | sed "s/\"|'|\\|\///g")"
 
 if [ -f "$LIBRARY_FOLDER/$outputFolder/$title.mp3" ] && [ "$ALLOW_OVERWRITE" = "0" ]; then
     echo "Already in library: $title"
+    echo "$soundUrl" >> "$ACTUAL_PATH/sound.downloaded"
     exit 0
 fi
 

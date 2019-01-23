@@ -45,12 +45,9 @@ touch sound.downloaded sound.failed
 todoSoundUrl=$(mktemp)
 todoOutputFolder=$(mktemp)
 
-# TODO: tmp -> $(mktemp) ?
-i=0
-url=$(jq -r ".playlistToSync[$i].url" "$CONFIG_FILE")
-while [ "$url" != "null" ]; do
+jq -r '.playlistToSync[] | .url + "\t" + .folder' "$CONFIG_FILE" | \
+while read -r url outputFolder; do
     echo "Downloading tracklist for $url"
-    outputFolder=$(jq -r ".playlistToSync[$i].folder" "$CONFIG_FILE")
 
     if [ "$outputFolder" = "null" ]; then
         echo "Output folder for $url is undefined"
@@ -68,9 +65,8 @@ while [ "$url" != "null" ]; do
         continue
     fi
 
-    u=0
-    soundUrl=$(echo "$tracklist" | jq -r ".entries[$u].url")
-    while [ "$soundUrl" != "null" ]; do
+    echo "$tracklist" | jq -r '.entries[].url' | \
+    while read -r soundUrl; do
 
         echo "Processing $soundUrl"
 
@@ -92,15 +88,8 @@ while [ "$url" != "null" ]; do
         #TODO: Add username/password for youtube/souncloud
         #--username \"$Playlist::config->{'username'}\" \
         #--password \"$Playlist::config->{'password'}\"  \
-
-        #Get the next url
-        u=$((u + 1))
-        soundUrl=$(echo "$tracklist" | jq -r ".entries[$u].url")
     done
 
-    #Next turn
-    i=$((i + 1))
-    url=$(jq -r ".playlistToSync[$i].url" "$CONFIG_FILE")
 done
 
 parallel --link -a "$todoSoundUrl" -a "$todoOutputFolder" ./worker.sh "{1}" "{2}"
