@@ -17,6 +17,20 @@ _required_tool() {
 		exit 1
 	fi
 }
+
+_install_parallel() {
+    rm parallel* -rf
+    curl -L http://ftp.gnu.org/gnu/parallel/parallel-latest.tar.bz2 -o parallel.tar.bz2
+    tar xvf parallel.tar.bz2
+    rm parallel.tar.bz2
+    cd parallel-*
+    ./configure
+    make
+    cp src/parallel ../parallel
+    cd ../
+    rm parallel-* -rf
+}
+
 _required_tool parallel
 _required_tool ffmpeg
 _required_tool nproc
@@ -25,6 +39,7 @@ _print_err_and_exit() {
     echo "$1"
 	exit 1
 }
+
 
 LIBRARY_FOLDER=$(jq -r .libraryFolder config.json)
 [ "$LIBRARY_FOLDER" ] || _print_err_and_exit "libraryFolder is undefined in config.json"
@@ -36,6 +51,11 @@ if [ "$UPDATE_YOUTUBEDL" = 1 ] || [ ! -f "youtube-dl" ]; then
     echo "Updating youtube-dl"
     curl -L https://yt-dl.org/downloads/latest/youtube-dl -o ./youtube-dl
     chmod +x ./youtube-dl
+fi
+
+if [ ! -f "parallel" ]; then
+    echo "Parallel is missing, compiling from source"
+    _install_parallel
 fi
 
 TMP_FOLDER=$(mktemp -d)
@@ -92,7 +112,7 @@ while read -r url outputFolder; do
 
 done
 
-parallel --link -a "$todoSoundUrl" -a "$todoOutputFolder" ./worker.sh "{1}" "{2}"
+./parallel --link -a "$todoSoundUrl" -a "$todoOutputFolder" ./worker.sh "{1}" "{2}"
 
 rm -rf "$TMP_FOLDER"
 rm -rf "$todoOutputFolder"
