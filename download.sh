@@ -31,9 +31,7 @@ _install_parallel() {
     rm parallel-* -rf
 }
 
-_required_tool parallel
 _required_tool ffmpeg
-_required_tool nproc
 
 _print_err_and_exit() {
     echo "$1"
