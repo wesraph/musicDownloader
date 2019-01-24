@@ -84,33 +84,21 @@ while read -r url outputFolder; do
     fi
 
     echo "$tracklist" | jq -r '.entries[].url' | \
-    while read -r soundUrl; do
+    awk -v todoSoundUrl="$todoSoundUrl" -v todoOutputFolder="$todoOutputFolder" -v tracklistUrl="$tracklist" -v outputFolder="$outputFolder" ' {
+        if (match(tracklistUrl, /youtube/))
+        {
+            print "https://www.youtube.com/watch?v="$1 >> todoSoundUrl
+        } else if(match(tracklistUrl, /soundcloud/))
+        {
+            print $1 >> todoSoundUrl
+        }
 
-        echo "Processing $soundUrl"
-
-        type=$(echo "$tracklist" | jq -r ".entries[$u].ie_key")
-
-        #Add the correct soundUrl
-        if  echo "$tracklist" | grep "youtube" > /dev/null; then
-            url="https://www.youtube.com/watch?v=$soundUrl"
-        elif  echo "$tracklist" | grep "soundcloud" > /dev/null; then
-            url="$soundUrl"
-        else
-            echo "$type is not supported, skipping"
-            continue
-        fi
-
-        echo "$url" >> $todoSoundUrl
-        echo "$outputFolder" >> $todoOutputFolder
-
-        #TODO: Add username/password for youtube/souncloud
-        #--username \"$Playlist::config->{'username'}\" \
-        #--password \"$Playlist::config->{'password'}\"  \
-    done
-
+        print outputFolder >> todoOutputFolder
+    }' 2>/dev/null
+    
 done
 
-./parallel --link -a "$todoSoundUrl" -a "$todoOutputFolder" ./worker.sh "{1}" "{2}"
+./parallel --eta --progress --link -a "$todoSoundUrl" -a "$todoOutputFolder" ./worker.sh "{1}" "{2}"
 
 rm -rf "$TMP_FOLDER"
 rm -rf "$todoOutputFolder"

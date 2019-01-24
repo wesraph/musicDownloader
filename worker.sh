@@ -37,8 +37,6 @@ fi
 
 while [ $count -lt $MAX_COUNT ]; do
 
-    echo "Downloading $title $count/$MAX_COUNT"
-
     if "$ACTUAL_PATH"/youtube-dl  \
         -o "$TMP_FOLDER/$uuid/%(title)s.%(ext)s" \
         -f 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best' \
@@ -64,5 +62,5 @@ echo "$soundUrl" >> "$ACTUAL_PATH/sound.downloaded"
 
 #TODO: Change this
 toMove=$(find "$TMP_FOLDER/$uuid/" -iname "*.mp3")
-echo "Moving $title"
+echo "Ok: $title"
 mv "$toMove" "$LIBRARY_FOLDER/$outputFolder/$title.mp3"
