@@ -63,12 +63,18 @@ touch sound.downloaded sound.failed
 todoSoundUrl=$(mktemp)
 todoOutputFolder=$(mktemp)
 
-jq -r '.playlistToSync[] | .url + "\t" + .folder' "$CONFIG_FILE" | \
-while read -r url outputFolder; do
-    echo "Downloading tracklist for $url"
+echo "Extracting tracklists"
+
+jq -r '.playlistToSync[] | .url + "\t" + .folder' "$CONFIG_FILE" | ./parallel  --colsep '\t' --files   'echo {1} && echo {2} && ./youtube-dl {1} --flat-playlist -J' | \
+while read -r playlistJson; do
+
+    tracklistUrl="$(awk 'NR==1' "$playlistJson")"
+    outputFolder="$(awk 'NR==2' "$playlistJson")"
+
+    echo "Treating $tracklistUrl"
 
     if [ "$outputFolder" = "null" ]; then
-        echo "Output folder for $url is undefined"
+        echo "Output folder for $tracklistUrl is undefined"
         continue
     fi
 
@@ -77,14 +83,8 @@ while read -r url outputFolder; do
         mkdir -p "$LIBRARY_FOLDER/$outputFolder"
     fi
 
-    tracklist=$(./youtube-dl "$url" --flat-playlist -J)
-    if [ -z "$tracklist" ]; then
-        echo "Cannot download tracklist $tracklist, please check the url"
-        continue
-    fi
-
-    echo "$tracklist" | jq -r '.entries[].url' | \
-    awk -v todoSoundUrl="$todoSoundUrl" -v todoOutputFolder="$todoOutputFolder" -v tracklistUrl="$tracklist" -v outputFolder="$outputFolder" ' {
+    tail -n+3 "$playlistJson" | jq -r '.entries[].url' | \
+    awk -v todoSoundUrl="$todoSoundUrl" -v todoOutputFolder="$todoOutputFolder" -v tracklistUrl="$tracklistUrl" -v outputFolder="$outputFolder" ' {
         if (match(tracklistUrl, /youtube/))
         {
             print "https://www.youtube.com/watch?v="$1 >> todoSoundUrl
@@ -94,7 +94,7 @@ while read -r url outputFolder; do
         }
 
         print outputFolder >> todoOutputFolder
-    }' 2>/dev/null
+    }' 
     
 done
 
