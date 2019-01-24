@@ -10,7 +10,6 @@ export TMP_FOLDER="/tmp"
 ACTUAL_PATH="$(pwd)"
 export ACTUAL_PATH
 
-
 _required_tool() {
 	if ! type "$1" >/dev/null 2>/dev/null; then
 		echo "Please install $1"
@@ -67,7 +66,6 @@ echo "Extracting tracklists"
 
 jq -r '.playlistToSync[] | .url + "\t" + .folder' "$CONFIG_FILE" | ./parallel  --colsep '\t' --files   'echo {1} && echo {2} && ./youtube-dl {1} --flat-playlist -J' | \
 while read -r playlistJson; do
-
     tracklistUrl="$(awk 'NR==1' "$playlistJson")"
     outputFolder="$(awk 'NR==2' "$playlistJson")"
 
@@ -84,7 +82,12 @@ while read -r playlistJson; do
     fi
 
     tail -n+3 "$playlistJson" | jq -r '.entries[].url' | \
-    awk -v todoSoundUrl="$todoSoundUrl" -v todoOutputFolder="$todoOutputFolder" -v tracklistUrl="$tracklistUrl" -v outputFolder="$outputFolder" ' {
+    awk \
+    -v  todoSoundUrl="$todoSoundUrl" \
+    -v todoOutputFolder="$todoOutputFolder" \
+    -v tracklistUrl="$tracklistUrl" \
+    -v outputFolder="$outputFolder" \
+    '{
         if (match(tracklistUrl, /youtube/))
         {
             print "https://www.youtube.com/watch?v="$1 >> todoSoundUrl
@@ -95,7 +98,8 @@ while read -r playlistJson; do
 
         print outputFolder >> todoOutputFolder
     }' 
-    
+
+    rm "$playlistJson"
 done
 
 ./parallel --eta --progress --link -a "$todoSoundUrl" -a "$todoOutputFolder" ./worker.sh "{1}" "{2}"
