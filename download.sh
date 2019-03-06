@@ -112,7 +112,7 @@ rm -rf "$todoSoundUrl"
 mkdir -p "$LIBRARY_FOLDER/Playlists"
 cd "$LIBRARY_FOLDER/Playlists"
 
-jq -r '.playlistToSync[] | .folder' "$ACTUAL_PATH/$CONFIG_FILE" | \
+jq -r '.playlistToSync[] | .folder' "$ACTUAL_PATH/$CONFIG_FILE" | uniq |   \
 while read -r playlist_folder; do
     echo "Creating playlist for $playlist_folder"
     stat -c "%Y %n" ../"$playlist_folder/"*  | sort -r | cut -d" " -f2- > "$playlist_folder".m3u
