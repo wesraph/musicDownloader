@@ -97,7 +97,7 @@ while read -r playlistJson; do
         }
 
         print outputFolder >> todoOutputFolder
-    }' 
+    }'
 
     rm "$playlistJson"
 done
@@ -107,3 +107,18 @@ done
 rm -rf "$TMP_FOLDER"
 rm -rf "$todoOutputFolder"
 rm -rf "$todoSoundUrl"
+
+### Second part: Create playlists
+mkdir -p "$LIBRARY_FOLDER/Playlists"
+cd "$LIBRARY_FOLDER/Playlists"
+
+jq -r '.playlistToSync[] | .folder' "$ACTUAL_PATH/$CONFIG_FILE" | \
+while read -r playlist_folder; do
+    echo "Creating playlist for $playlist_folder"
+    stat -c "%Y %n" ../"$playlist_folder/"*  | sort -r | cut -d" " -f2- > "$playlist_folder".m3u
+done
+
+echo "Creating global playlist"
+find ../ -path ../Playlists -prune -o -type f -exec stat -c "%Y %n" {} \; | sort -r | cut -d" " -f2- > Library.m3u
+
+echo "OK"
