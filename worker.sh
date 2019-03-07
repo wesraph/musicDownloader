@@ -62,6 +62,10 @@ echo "$soundUrl" >> "$ACTUAL_PATH/sound.downloaded"
 
 # TODO: Change this
 toMove=$(find "$TMP_FOLDER/$uuid/" -iname "*.mp3")
+
+# Force creation/modify date
+touch "$toMove"
+
 mv "$toMove" "$LIBRARY_FOLDER/$outputFolder/$title.mp3"
 
 # Add song to the beginning of its corresponding playlist
