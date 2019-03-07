@@ -1,4 +1,4 @@
-set -e 
+set -e
 
  if [ -z "$1" ] || [ -z "$2" ]; then
      echo "Usage : worker.sh link outputFolder"
@@ -26,7 +26,7 @@ count=0
 MAX_COUNT=3
 
 
-#TODO: Get the title 
+# TODO: Get the title
 title="$("$ACTUAL_PATH/youtube-dl" -e "$soundUrl" | sed "s/\"|'|\\|\///g")"
 
 if [ -f "$LIBRARY_FOLDER/$outputFolder/$title.mp3" ] && [ "$ALLOW_OVERWRITE" = "0" ]; then
@@ -60,7 +60,13 @@ fi
 
 echo "$soundUrl" >> "$ACTUAL_PATH/sound.downloaded"
 
-#TODO: Change this
+# TODO: Change this
 toMove=$(find "$TMP_FOLDER/$uuid/" -iname "*.mp3")
-echo "Ok: $title"
 mv "$toMove" "$LIBRARY_FOLDER/$outputFolder/$title.mp3"
+
+# Add song to the beginning of its corresponding playlist
+tmp_playlist="$(mktemp)"
+echo "../$outputFolder/$title.mp3" | cat - "$LIBRARY_FOLDER/Playlists/$outputFolder.m3u" > "$tmp_playlist"
+mv "$tmp_playlist" "$LIBRARY_FOLDER/Playlists/$outputFolder.m3u"
+
+echo "Ok: $title"
