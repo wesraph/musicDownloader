@@ -17,6 +17,60 @@ _required_tool() {
 	fi
 }
 
+_rewrite_urls() {
+        awk \
+        -v todoSoundUrl="$todoSoundUrl" \
+        -v todoOutputFolder="$todoOutputFolder" \
+        -v tracklistUrl="$tracklistUrl" \
+        -v outputFolder="$outputFolder" \
+        '{
+            if (match(tracklistUrl, /youtube/))
+            {
+                print "https://www.youtube.com/watch?v="$1 >> todoSoundUrl
+            } else if(match(tracklistUrl, /soundcloud/))
+            {
+                print $1 >> todoSoundUrl
+            } else if(match(tracklistUrl, /filelist\:\/\//))
+            {
+                print $1 >> todoSoundUrl
+            }
+
+            print outputFolder >> todoOutputFolder
+        }'
+}
+
+_prepare_downloads() {
+    while read -r playlistJson; do
+        tracklistUrl="$(awk 'NR==1' "$playlistJson")"
+        outputFolder="$(awk 'NR==2' "$playlistJson")"
+
+        echo "Treating $tracklistUrl"
+
+        if [ "$outputFolder" = "null" ]; then
+            echo "Output folder for $tracklistUrl is undefined"
+            continue
+        fi
+
+        if [ ! -d "$LIBRARY_FOLDER/$outputFolder" ]; then
+            echo "Creating $outputFolder"
+            mkdir -p "$LIBRARY_FOLDER/$outputFolder"
+        fi
+
+        if echo "$tracklistUrl" | grep -E '^filelist\:\/\/' > /dev/null; then
+            filePath="$(echo "$tracklistUrl" | sed -E 's/^filelist\:\/\///g')"
+            [ ! -f "$filePath" ] && {
+                echo "$filePath does not exist" >&2
+                continue
+            }
+            cat "$filePath" | _rewrite_urls
+        else
+            tail -n+3 "$playlistJson" | jq -r '.entries[].url' | _rewrite_urls
+        fi
+
+        rm "$playlistJson"
+    done
+}
+
 _install_parallel() {
     rm parallel* -rf
     curl -L http://ftp.gnu.org/gnu/parallel/parallel-latest.tar.bz2 -o parallel.tar.bz2
@@ -64,43 +118,9 @@ todoOutputFolder=$(mktemp)
 
 echo "Extracting tracklists"
 
-jq -r '.playlistToSync[] | .url + "\t" + .folder' "$CONFIG_FILE" | ./parallel  --colsep '\t' --files   'echo {1} && echo {2} && ./youtube-dl {1} --flat-playlist -J' | \
-while read -r playlistJson; do
-    tracklistUrl="$(awk 'NR==1' "$playlistJson")"
-    outputFolder="$(awk 'NR==2' "$playlistJson")"
-
-    echo "Treating $tracklistUrl"
-
-    if [ "$outputFolder" = "null" ]; then
-        echo "Output folder for $tracklistUrl is undefined"
-        continue
-    fi
-
-    if [ ! -d "$LIBRARY_FOLDER/$outputFolder" ]; then
-        echo "Creating $outputFolder"
-        mkdir -p "$LIBRARY_FOLDER/$outputFolder"
-    fi
-
-    tail -n+3 "$playlistJson" | jq -r '.entries[].url' | \
-    awk \
-    -v  todoSoundUrl="$todoSoundUrl" \
-    -v todoOutputFolder="$todoOutputFolder" \
-    -v tracklistUrl="$tracklistUrl" \
-    -v outputFolder="$outputFolder" \
-    '{
-        if (match(tracklistUrl, /youtube/))
-        {
-            print "https://www.youtube.com/watch?v="$1 >> todoSoundUrl
-        } else if(match(tracklistUrl, /soundcloud/))
-        {
-            print $1 >> todoSoundUrl
-        }
-
-        print outputFolder >> todoOutputFolder
-    }'
-
-    rm "$playlistJson"
-done
+jq -r '.playlistToSync[] | .url + "\t" + .folder' "$CONFIG_FILE" |\
+./parallel  --colsep '\t' --files   'echo {1} && echo {2} && ./youtube-dl {1} --flat-playlist -J' | \
+_prepare_downloads
 
 ./parallel --eta --progress --link -a "$todoSoundUrl" -a "$todoOutputFolder" ./worker.sh "{1}" "{2}"
 
