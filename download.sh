@@ -4,7 +4,7 @@ set -e
 UPDATE_YOUTUBEDL=${UPDATE_YOUTUBEDL:-1}
 export CONFIG_FILE="./config.json"
 export LIBRARY_FOLDER="./test/"
-export ALLOW_OVERWRITE=0
+export ALLOW_OVERWRITE=${ALLOW_OVERWRITE:-0}
 export TMP_FOLDER="/tmp"
 
 ACTUAL_PATH="$(pwd)"
