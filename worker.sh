@@ -70,6 +70,7 @@ mv "$toMove" "$LIBRARY_FOLDER/$outputFolder/$title.mp3"
 
 # Add song to the beginning of its corresponding playlist
 tmp_playlist="$(mktemp)"
+mkdir -p "$LIBRARY_FOLDER/Playlists/"
 touch "$LIBRARY_FOLDER/Playlists/$outputFolder.m3u"
 echo "../$outputFolder/$title.mp3" | cat - "$LIBRARY_FOLDER/Playlists/$outputFolder.m3u" > "$tmp_playlist"
 mv "$tmp_playlist" "$LIBRARY_FOLDER/Playlists/$outputFolder.m3u" -f
