@@ -30,7 +30,7 @@ _rewrite_urls() {
             } else if(match(tracklistUrl, /soundcloud/))
             {
                 print $1 >> todoSoundUrl
-            } else if(match(tracklistUrl, /filelist\:\/\//))
+            } else if(match(tracklistUrl, /filelist:\/\//))
             {
                 print $1 >> todoSoundUrl
             }
