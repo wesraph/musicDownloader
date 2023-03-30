@@ -56,7 +56,7 @@ _prepare_downloads() {
             mkdir -p "$LIBRARY_FOLDER/$outputFolder"
         fi
 
-        if echo "$tracklistUrl" | grep -E '^filelist\:\/\/' > /dev/null; then
+        if echo "$tracklistUrl" | grep -E '^filelist://' > /dev/null; then
             filePath="$(echo "$tracklistUrl" | sed -E 's/^filelist\:\/\///g')"
             [ ! -f "$filePath" ] && {
                 echo "$filePath does not exist" >&2
