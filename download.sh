@@ -4,7 +4,7 @@ set -e
 UPDATE_YOUTUBEDL=${UPDATE_YOUTUBEDL:-1}
 export CONFIG_FILE="./config.json"
 export LIBRARY_FOLDER="./test/"
-export ALLOW_OVERWRITE=${ALLOW_OVERWRITE:-0}
+export ALLOW_OVERWRITE="${ALLOW_OVERWRITE:-0}"
 export TMP_FOLDER="/tmp"
 
 ACTUAL_PATH="$(pwd)"
@@ -26,7 +26,7 @@ _rewrite_urls() {
         '{
             if (match(tracklistUrl, /youtube/))
             {
-                print "https://www.youtube.com/watch?v="$1 >> todoSoundUrl
+                print $1 >> todoSoundUrl
             } else if(match(tracklistUrl, /soundcloud/))
             {
                 print $1 >> todoSoundUrl
@@ -57,7 +57,7 @@ _prepare_downloads() {
         fi
 
         if echo "$tracklistUrl" | grep -E '^filelist://' > /dev/null; then
-            filePath="$(echo "$tracklistUrl" | sed -E 's/^filelist\:\/\///g')"
+            filePath="$(echo "$tracklistUrl" | sed -E 's/^filelist:\/\///g')"
             [ ! -f "$filePath" ] && {
                 echo "$filePath does not exist" >&2
                 continue
@@ -100,8 +100,9 @@ LIBRARY_FOLDER=$(readlink -f "$LIBRARY_FOLDER")
 
 if [ "$UPDATE_YOUTUBEDL" = 1 ] || [ ! -f "youtube-dl" ]; then
     echo "Updating youtube-dl"
-    curl -L https://yt-dl.org/downloads/latest/youtube-dl -o ./youtube-dl
+    curl -L https://github.com/yt-dlp/yt-dlp/releases/download/2023.03.04/yt-dlp -o ./youtube-dl
     chmod +x ./youtube-dl
+    ./youtube-dl -U
 fi
 
 if [ ! -f "parallel" ]; then
